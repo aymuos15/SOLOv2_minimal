@@ -9,7 +9,7 @@ The repo has the dummy dataset. So:
 3. To visualise: run `detect.py` --> Visualisations saved at `results`
 4. For all, run: `python train.py && python val.py && python detect.py`
 
-My goal was here to git the minimal viable produce at potentially the cost of some performance. 
+My goal was here to get the minimal viable product at potentially the cost of some performance. 
 
 ## Notes
 
@@ -17,19 +17,20 @@ My goal was here to git the minimal viable produce at potentially the cost of so
 2. Sometimes, even on the dummy dataset, 2 epochs are not enough and the model does not learn. I am not sure why there is so much randomness.
 3. For curve metrics, refer to original repo. Have removed it from here for now.
 4. `/weigths/weights/backbone_resnet34.pth` is from the orginal repo. Check all the weights there.
-    - Apparently the version outperforms original. I have not dug deep into my changes to gauge a performance deficit. You can see the commit difs as I started with the original clone.
+    - Apparently the version outperforms original. I have not dug deep into my changes to gauge a performance deficit. You can see the commit difs as I started with the original clone. It is the first commit with the message "Minimalisation Push!".
 
 ### Dummy Datasets
 
 - `data/dummy/makedata.py` to build the dummy dataset. Look into the file to set up the params. This is inherently coco style.
 - `data/dummy/lookdata.py` to verify your data.
 
-## Immedieate todos
+## Immediate todos
 
 - [ ] Improve visualisation code.
 - [ ] Improve logging and experiment tracking. --> This is actually done in the orig repo but I do not like how its done at the moment.
 - [ ] Yet to check what this `results/val/Solov2_light_res34.json` val results actually store.
 - [ ] Test on COCO.
+- [ ] Add a requirements.txt file.
 
 ### Misc
 
