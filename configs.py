@@ -6,8 +6,8 @@ TrainBatchSize = 2
 
 ############## MODEL SELECTION ##############
 # Change this to select which model to use across all scripts
-# Options: 'Solov2_res50', 'Solov2_light_res50', 'Solov2_light_res34', 'Solov2_UNet'
-MODEL_CHOICE = 'Solov2_UNet'
+# Options: 'Solov2_res50', 'Solov2_light_res50', 'Solov2_light_res34', 'Solov2_UNet', 'Solov2_light_UNet'
+MODEL_CHOICE = 'Solov2_light_UNet'
 
 ############## MODEL CONFIGURATION ##############
 
@@ -201,6 +201,39 @@ class Solov2_UNet(Solov2_res50):
         super().setup_validation_params()
         self.val_weight = 'weights/Solov2_UNet_5.pth'  # Use the latest UNet weights
         self.val_aug = ValAug(img_scale=[(768, 448)])
+
+class Solov2_light_UNet(Solov2_UNet):
+    def __init__(self, mode):
+        super().__init__(mode)
+    
+    def setup_model_hyperparams(self):
+        """Override model hyperparameters for light UNet"""
+        super().setup_model_hyperparams()
+        
+        # Adjust UNet configuration for light version
+        self.unet_base_c = 32  # Reduce base channel depth for lighter model
+        
+        # Adjust FPN input channels accordingly
+        self.fpn_in_c = [64, 128, 256, 256]
+        
+        # Other parameters adjusted for light UNet
+        self.head_stacked_convs = 1
+        self.head_seg_feat_c = 128
+        self.head_ins_out_c = 64
+        self.head_scale_ranges = ((1, 28), (14, 56), (28, 112), (56, 224), (112, 448))
+        self.mask_feat_num_classes = 64
+    
+    def setup_training_params(self):
+        """Override training parameters for light UNet"""
+        super().setup_training_params()
+        self.train_aug = TrainAug(img_scale=[(640, 480), (640, 448), (640, 416),
+                                           (640, 384), (640, 352), (640, 320)])
+    
+    def setup_validation_params(self):
+        """Override validation parameters for light UNet"""
+        super().setup_validation_params()
+        self.val_weight = 'weights/Solov2_light_UNet_5.pth'  # Use the latest light UNet weights
+        self.val_aug = ValAug(img_scale=[(640, 384)])
 
 ############## DATASET CONFIGURATION ##############
 '''COCO'''

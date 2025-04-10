@@ -18,6 +18,7 @@ My goal was here to get the minimal viable product at potentially the cost of so
 3. For curve metrics, refer to original repo. Have removed it from here for now.
 4. `/weigths/weights/backbone_resnet34.pth` is from the orginal repo. Check all the weights there.
     - Apparently the version outperforms original. I have not dug deep into my changes to gauge a performance deficit. You can see the commit difs as I started with the original clone. It is the first commit with the message "Minimalisation Push!".
+5. Why is unet doing bad? Am I doing something wrong?
 
 ### Dummy Datasets
 
@@ -31,7 +32,7 @@ My goal was here to get the minimal viable product at potentially the cost of so
 - [ ] Yet to check what this `results/val/Solov2_light_res34.json` val results actually store.
 - [ ] Test on COCO.
 - [ ] Add a requirements.txt file.
-- [ ] Make a light config of UNet
+- [x] Make a light config of UNet
 - [ ] Unit Tests
 
 ### Misc
