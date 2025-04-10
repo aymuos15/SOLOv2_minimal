@@ -1,14 +1,22 @@
 import torch.nn as nn
 from model.backbone import ResNet
 from model.fpn import FPN
+from model.unet import UNet, UNetFPN
 from model.mask_feature import MaskFeatHead
 from model.head import SOLOv2Head
 
 class SOLOv2(nn.Module):
     def __init__(self, cfg):
         super(SOLOv2, self).__init__()
-        self.backbone = ResNet(depth=cfg.resnet_depth, frozen_stages=1)
-        self.neck = FPN(cfg.fpn_in_c)
+        
+        # Use UNet if specified in config, otherwise use ResNet
+        if hasattr(cfg, 'use_unet') and cfg.use_unet:
+            self.backbone = UNet(in_channels=3, bilinear=cfg.unet_bilinear, base_c=cfg.unet_base_c)
+            self.neck = UNetFPN(cfg.fpn_in_c)
+        else:
+            self.backbone = ResNet(depth=cfg.resnet_depth, frozen_stages=1)
+            self.neck = FPN(cfg.fpn_in_c)
+            
         self.mask_feat_head = MaskFeatHead(num_classes=cfg.mask_feat_num_classes)
 
         self.bbox_head = SOLOv2Head(num_classes=cfg.num_classes, stacked_convs=cfg.head_stacked_convs,

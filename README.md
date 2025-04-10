@@ -31,6 +31,8 @@ My goal was here to get the minimal viable product at potentially the cost of so
 - [ ] Yet to check what this `results/val/Solov2_light_res34.json` val results actually store.
 - [ ] Test on COCO.
 - [ ] Add a requirements.txt file.
+- [ ] Make a light config of UNet
+- [ ] Unit Tests
 
 ### Misc
 

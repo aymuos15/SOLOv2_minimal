@@ -2,7 +2,12 @@ import numpy as np
 from data_loader.dataset import CocoIns
 from data_loader.augmentations import TrainAug, ValAug
 
-TrainBatchSize = 12
+TrainBatchSize = 2
+
+############## MODEL SELECTION ##############
+# Change this to select which model to use across all scripts
+# Options: 'Solov2_res50', 'Solov2_light_res50', 'Solov2_light_res34', 'Solov2_UNet'
+MODEL_CHOICE = 'Solov2_UNet'
 
 ############## MODEL CONFIGURATION ##############
 
@@ -154,6 +159,48 @@ class Solov2_light_res34(Solov2_res50):
         if self.mode in ('detect', 'onnx'):
             self.postprocess_para['update_thr'] = 0.9
         self.postprocess_para['mask_thr'] = 0.9
+
+
+class Solov2_UNet(Solov2_res50):
+    def __init__(self, mode):
+        super().__init__(mode)
+    
+    def setup_model_hyperparams(self):
+        """Override model hyperparameters"""
+        super().setup_model_hyperparams()
+        
+        # UNet configuration
+        self.use_unet = True
+        self.unet_bilinear = True
+        self.unet_base_c = 64
+        
+        # UNet outputs 4 feature maps with these channel depths:
+        # 1/2 scale: base_c*2 = 128
+        # 1/4 scale: base_c*4 = 256
+        # 1/8 scale: base_c*8 = 512
+        # 1/16 scale: base_c*16//2 = 512 (if bilinear=True, otherwise base_c*16 = 1024)
+        self.fpn_in_c = [128, 256, 512, 512]
+        
+        # Other parameters adjusted for UNet
+        self.pretrained = ''  # UNet has no pretrained weights by default
+        self.break_weight = ''
+        self.head_stacked_convs = 2
+        self.head_seg_feat_c = 256
+        self.head_ins_out_c = 128
+        self.head_scale_ranges = ((1, 56), (28, 112), (56, 224), (112, 448), (224, 896))
+        self.mask_feat_num_classes = 128
+    
+    def setup_training_params(self):
+        """Override training parameters"""
+        super().setup_training_params()
+        self.train_aug = TrainAug(img_scale=[(768, 512), (768, 480), (768, 448),
+                                           (768, 416), (768, 384), (768, 352)])
+    
+    def setup_validation_params(self):
+        """Override validation parameters"""
+        super().setup_validation_params()
+        self.val_weight = 'weights/Solov2_UNet_5.pth'  # Use the latest UNet weights
+        self.val_aug = ValAug(img_scale=[(768, 448)])
 
 ############## DATASET CONFIGURATION ##############
 '''COCO'''

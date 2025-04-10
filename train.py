@@ -6,7 +6,9 @@ from configs import *
 from data_loader.build_loader import make_data_loader
 
 if __name__ == '__main__':
-    cfg = Solov2_light_res34(mode='train')
+    # Get the model configuration based on MODEL_CHOICE
+    model_class = globals()[MODEL_CHOICE]
+    cfg = model_class(mode='train')
 
     model = SOLOv2(cfg).cuda()
     model.train()

@@ -8,7 +8,9 @@ from data_loader.build_loader import make_data_loader
 
 plt.switch_backend('Agg')
 
-cfg = Solov2_light_res34(mode='val')
+# Get the model configuration based on MODEL_CHOICE
+model_class = globals()[MODEL_CHOICE]
+cfg = model_class(mode='val')
 model = SOLOv2(cfg).cuda()
 
 state_dict = torch.load(cfg.val_weight, weights_only=True)

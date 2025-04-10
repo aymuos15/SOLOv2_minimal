@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import pycocotools.mask as mask_util
 from model.solov2 import SOLOv2
-from configs import Solov2_light_res34
+from configs import *
 from metrics.cocoeval import SelfEval
 from data_loader.build_loader import make_data_loader
 
@@ -75,6 +75,8 @@ def val(cfg, model=None):
 
 
 if __name__ == '__main__':
-    cfg = Solov2_light_res34(mode='val')
+    # Get the model configuration based on MODEL_CHOICE
+    model_class = globals()[MODEL_CHOICE]
+    cfg = model_class(mode='val')
     cfg.print_cfg()
     val(cfg)
