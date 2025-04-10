@@ -1,11 +1,6 @@
-#!/usr/bin/env python 
-# -*- coding:utf-8 -*-
-import pdb
-
 import cv2
 import random
 import numpy as np
-
 
 def random_flip(img, bboxes, masks, v_flip=False):
     height, width = img.shape[:2]
@@ -149,24 +144,3 @@ class ValAug:
 
     def __repr__(self):
         return f'img_scale: {self.img_scale}\n         mean: {self.norm_mean}, std: {self.norm_std}'
-
-
-def show_ann(img, boxes, masks):
-    img_u8 = img.astype('uint8')
-
-    for i in range(boxes.shape[0]):
-        cv2.rectangle(img_u8, (int(boxes[i, 0]), int(boxes[i, 1])),
-                      (int(boxes[i, 2]), int(boxes[i, 3])), (0, 255, 0), 1)
-
-    print(f'\nimg shape: {img.shape}')
-    print('----------------boxes----------------')
-    print(boxes)
-
-    cv2.imshow('aa', img_u8)
-    cv2.waitKey()
-    print(masks.shape)
-    masks = masks.transpose(2, 0, 1)
-    for i in range(masks.shape[0]):
-        one_mask = masks[i].astype('uint8') * 200
-        cv2.imshow('bb', one_mask)
-        cv2.waitKey()

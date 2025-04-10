@@ -1,81 +1,57 @@
-## SOLOv2_minimal
-Minimal PyTorch implementation of [SOLOv2](https://arxiv.org/abs/2003.10152).  No mmdet, no Detectron, PyTorch only. 
+# PyTorch only implementation of SOLOv2
 
+Essentially, Cleaned the code and minor changes from: `https://github.com/feiyuhuahuo/SOLOv2_minimal`.
 
-## Test Environments  
-PyTorch 1.13  
-Python 3.10  
-CUDA 11.6
+The repo has the dummy dataset. So:
 
+1. To train as is: `python train.py`
+2. To test as is: `python val.py`
+3. To visualise: run `detect.py` --> Visualisations saved at `results`
+4. For all, run: `python train.py && python val.py && python detect.py`
 
-## Performance 
-This project is trained on one RTX3090. Batch size is 16 for light-Resnet50 and light-Resnet34, 10 for Resnet50.  
-[Download weights here](https://github.com/feiyuhuahuo/SOLOv2_minimal/releases/tag/v1.0)  
-mask mAP:  
+My goal was here to git the minimal viable produce at potentially the cost of some performance. 
 
-| configuration  | official | this project |
-|:--------------:|:--------:|:------------:|
-|    Resnet50    |   37.5   |     38.1     |
-| light-Resnet50 |   33.7   |     33.9     |
-| light-Resnet34 |   32.0   |     32.1     |
- 
+## Notes
 
-## Train
-DDP is not supported for now.  
-Modify `data_root` and the related images and label path in `configs.py`, choose a suitable batch size for `TrainBatchSize`.  
-Then:
-```Shell
-python train.py
+1. The `detect.py` from the original code was giving some errors. So I have chosen to remove that. I think everything is logically correct.
+2. Sometimes, even on the dummy dataset, 2 epochs are not enough and the model does not learn. I am not sure why there is so much randomness.
+3. For curve metrics, refer to original repo. Have removed it from here for now.
+4. `/weigths/weights/backbone_resnet34.pth` is from the orginal repo. Check all the weights there.
+    - Apparently the version outperforms original. I have not dug deep into my changes to gauge a performance deficit. You can see the commit difs as I started with the original clone.
+
+### Dummy Datasets
+
+- `data/dummy/makedata.py` to build the dummy dataset. Look into the file to set up the params. This is inherently coco style.
+- `data/dummy/lookdata.py` to verify your data.
+
+## Immedieate todos
+
+- [ ] Improve visualisation code.
+- [ ] Improve logging and experiment tracking. --> This is actually done in the orig repo but I do not like how its done at the moment.
+- [ ] Yet to check what this `results/val/Solov2_light_res34.json` val results actually store.
+- [ ] Test on COCO.
+
+### Misc
+
+To suppress coco dataset outputs:
+
+```python
+import sys
+import os
+from pycocotools.coco import COCO
+from contextlib import contextmanager
+
+@contextmanager
+def suppress_stdout():
+    with open(os.devnull, 'w') as devnull:
+        old_stdout = sys.stdout
+        sys.stdout = devnull
+        try:
+            yield
+        finally:
+            sys.stdout = old_stdout
+
+# Use this when loading COCO
+with suppress_stdout():
+    coco = COCO('path/to/annotations.json')
 ```
-You can use `break_weight` to continue your training.  
-
-## Evalution
-This project use a self-write api to evaluate mAP ([for more detail](https://github.com/feiyuhuahuo/COCO_improved)). 
-The default setting is `SelfEval(dataset.coco, coco_dt, all_points=True, iou_type='segmentation')` in `val.py`, to get the exact value in the above table, please set `all_points=False`.  
-Modify `val_weight` in `configs.py`.  
-Then:  
-```Shell
-python val.py
-```
-
-
-## Detect
-Modify `detect_images` in `configs.py`. Set `detect_mode='contour'` to show object contours, set `detect_mode='overlap'` to show object masks.  
-Then:
-```Shell
-python detect.py
-```
-
-
-## Export to ONNX    
-Modify `val_weight` in `configs.py`.  
-Then:  
-```Shell
-python export2onnx.py
-```
-This project use `torch.jit.trace()` to export ONNX model. But there are some if-else branches in postprocess, this is not compatible with trace mode.  
-When no object is detected, the model will encounter an error, please use try-except to skip it. For more details, consult `detetc_onnx.py`.  
-
-
-## Train custom datasets
-![example.bmp](docs%2Fexample.bmp)  
-Please use [HuaHuoLabel](https://github.com/feiyuhuahuo/HuaHuoLabel) to label your data. There are two label modes in `HuaHuoLabel`, for now the `Separate File` mode is supported in this project.  
-
-The directory structure:  
-![2023-03-23_09-52.png](docs%2F2023-03-23_09-52.png)  
-The label file format:  
-![2023-03-23_10-05.png](docs%2F2023-03-23_10-05.png)  
-The "qcolor" and "widget_points" are not necessary for training. Check [example.json](docs%2Fexample.json) for detail.  
-
-Write a custom configuration in `configs.py`. Choose this configuration in `train.py`.  
-Then:  
-
-```Shell
-python train.py
-```
-
-
-
-- Some parameters need to be taken care of by yourself:
-- todo
-

@@ -1,11 +1,8 @@
-#!/usr/bin/env python 
-# -*- coding:utf-8 -*-
-import pdb
-
-import torch.nn as nn
-from utils.utils import ConvModule, normal_init
 import torch
+import torch.nn as nn
 
+from .layers import ConvModule
+from .inits import normal_init
 
 class MaskFeatHead(nn.Module):
     def __init__(self, in_channels=256, out_channels=128, start_level=0, end_level=3, num_classes=256,
@@ -60,7 +57,7 @@ class MaskFeatHead(nn.Module):
                 input_feat = input_p
                 x_range = torch.linspace(-1, 1, input_feat.shape[-1], device=input_feat.device)
                 y_range = torch.linspace(-1, 1, input_feat.shape[-2], device=input_feat.device)
-                y, x = torch.meshgrid(y_range, x_range)
+                y, x = torch.meshgrid(y_range, x_range, indexing='ij')
                 y = y.expand([input_feat.shape[0], 1, -1, -1])
                 x = x.expand([input_feat.shape[0], 1, -1, -1])
                 coord_feat = torch.cat([x, y], 1)

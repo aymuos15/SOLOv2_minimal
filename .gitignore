@@ -1,15 +1,12 @@
 *.pth
-.idea/
 *.pyc
-images/
-detect_imgs
 *.bin
-results/
-test~~.py
-*.mp4
-build/
 *.c
 *.so
-onnx_files
+
+# Ignore weights and detect images
 weights
-tensorboard_log
+detect_imgs
+build/
+images/
+results/

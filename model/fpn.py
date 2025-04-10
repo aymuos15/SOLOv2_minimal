@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
-from utils.utils import xavier_init, ConvModule
+from .layers import ConvModule
+from .inits import xavier_init
 
 
 class FPN(nn.Module):
