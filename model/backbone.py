@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 from torch.nn.modules.batchnorm import _BatchNorm
 
-from .inits import constant_init, kaiming_init
-from .norms import build_norm_layer
-from .layers import build_conv_layer
+from .utils.inits import constant_init, kaiming_init
+from .utils.norms import build_norm_layer
+from .utils.layers import build_conv_layer
 
 class BasicBlock(nn.Module):
     expansion = 1

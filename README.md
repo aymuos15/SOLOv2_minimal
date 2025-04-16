@@ -30,10 +30,12 @@ My goal was here to get the minimal viable product at potentially the cost of so
 - [ ] Improve visualisation code.
 - [ ] Improve logging and experiment tracking. --> This is actually done in the orig repo but I do not like how its done at the moment.
 - [ ] Yet to check what this `results/val/Solov2_light_res34.json` val results actually store.
-- [ ] Test on COCO.
+- [ ] Test on full COCO.
 - [ ] Add a requirements.txt file.
 - [x] Make a light config of UNet
 - [ ] Unit Tests
+- [ ] Make a variety of datasets to perform unittesting.
+- [ ] Compare the above datasets with mmDet library performance.
 
 ### Misc
 

@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 
-from .layers import ConvModule
-from .inits import normal_init
+from .utils.layers import ConvModule
+from .utils.inits import normal_init
 
 class MaskFeatHead(nn.Module):
     def __init__(self, in_channels=256, out_channels=128, start_level=0, end_level=3, num_classes=256,

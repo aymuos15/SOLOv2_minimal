@@ -1,105 +1,11 @@
-import cv2
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from functools import partial
-
-from .layers import ConvModule
-from .inits import normal_init, bias_init_with_prob
-
-def matrix_nms(seg_masks, cate_labels, cate_scores, sigma: float = 2.0, sum_masks=None):
-    """Matrix NMS for multi-class masks.
-
-    Args:
-        seg_masks (Tensor): shape (n, h, w)
-        cate_labels (Tensor): shape (n), mask labels in descending order
-        cate_scores (Tensor): shape (n), mask scores in descending order
-        sigma (float): std in gaussian method
-        sum_masks (Tensor): The sum of seg_masks
-
-    Returns:
-        Tensor: cate_scores_update, tensors of shape (n)
-    """
-
-    n_samples = cate_labels.shape[0]
-    if sum_masks is None:
-        sum_masks = seg_masks.sum((1, 2)).float()
-    seg_masks = seg_masks.reshape(n_samples, -1).float()
-    # inter.
-    inter_matrix = torch.mm(seg_masks, seg_masks.transpose(1, 0))
-    # union.
-    sum_masks_x = sum_masks.expand(n_samples, n_samples)
-    # iou.
-    iou_matrix = (inter_matrix / (sum_masks_x + sum_masks_x.transpose(1, 0) - inter_matrix)).triu(diagonal=1)
-    # label_specific matrix.
-    cate_labels_x = cate_labels.expand(n_samples, n_samples)
-    label_matrix = (cate_labels_x == cate_labels_x.transpose(1, 0)).float().triu(diagonal=1)
-
-    # IoU compensation
-    compensate_iou, _ = (iou_matrix * label_matrix).max(0)
-    compensate_iou = compensate_iou.expand(n_samples, n_samples).transpose(1, 0)
-
-    # IoU decay
-    decay_iou = iou_matrix * label_matrix
-
-    # matrix nms, kernel == 'gaussian'
-    decay_matrix = torch.exp(-1 * sigma * (decay_iou ** 2))
-    compensate_matrix = torch.exp(-1 * sigma * (compensate_iou ** 2))
-    decay_coefficient, _ = (decay_matrix / compensate_matrix).min(0)
-
-    # update the score.
-    cate_scores_update = cate_scores * decay_coefficient
-    return cate_scores_update
-
-def multi_apply(func, *args, **kwargs):
-    pfunc = partial(func, **kwargs) if kwargs else func
-    map_results = map(pfunc, *args)
-    return tuple(map(list, zip(*map_results)))
-
-def weight_reduce_loss(loss, weight=None, reduction='mean', avg_factor=None):
-    """Apply element-wise weight and reduce loss.
-
-    Args:
-        loss (Tensor): Element-wise loss.
-        weight (Tensor): Element-wise weights.
-        reduction (str): Same as built-in losses of PyTorch.
-        avg_factor (float): Avarage factor when computing the mean of losses.
-
-    Returns:
-        Tensor: Processed loss values.
-    """
-    # if weight is specified, apply element-wise weight
-    if weight is not None:
-        loss = loss * weight
-
-    assert avg_factor is not None, 'avg_factor can not be None'
-
-    # if reduction is mean, then average the loss by avg_factor
-    if reduction == 'mean':
-        loss = loss.sum() / avg_factor
-    # if reduction is 'none', then do nothing, otherwise raise an error
-    elif reduction != 'none':
-        raise ValueError('avg_factor can not be used with reduction="sum"')
-    return loss
-
-
-def py_sigmoid_focal_loss(pred, target, weight=None, gamma=2.0, alpha=0.25, reduction='mean',
-                          avg_factor=None, loss_weight=1.):
-    pred_sigmoid = pred.sigmoid()
-    target = target.type_as(pred).unsqueeze(1)
-
-    num_classes = pred_sigmoid.shape[1]
-    class_range = torch.arange(1, num_classes + 1, dtype=pred_sigmoid.dtype, device='cuda').unsqueeze(0)
-    target = (target == class_range).float()
-
-    pt = (1 - pred_sigmoid) * target + pred_sigmoid * (1 - target)
-    focal_weight = (alpha * target + (1 - alpha) * (1 - target)) * pt.pow(gamma)
-
-    loss = F.binary_cross_entropy_with_logits(pred, target, reduction='none') * focal_weight
-    loss = weight_reduce_loss(loss, weight, reduction, avg_factor)
-    return loss_weight * loss
-
+from .utils.layers import ConvModule
+from .utils.inits import normal_init, bias_init_with_prob
+from .loss import py_sigmoid_focal_loss, dice_loss
+from .utils.nms import matrix_nms, points_nms
 
 def center_of_mass(bitmasks):
     _, h, w = bitmasks.size()
@@ -112,25 +18,6 @@ def center_of_mass(bitmasks):
     center_x = m10 / m00
     center_y = m01 / m00
     return center_x, center_y
-
-
-def points_nms(heat, kernel=2):
-    # kernel must be 2
-    hmax = nn.functional.max_pool2d(heat, (kernel, kernel), stride=1, padding=1)
-    keep = (hmax[:, :, :-1, :-1] == heat).float()
-    return heat * keep
-
-
-def dice_loss(input, target):
-    input = input.contiguous().view(input.size()[0], -1)
-    target = target.contiguous().view(target.size()[0], -1).float()
-
-    a = torch.sum(input * target, 1)
-    b = torch.sum(input * input, 1) + 0.001
-    c = torch.sum(target * target, 1) + 0.001
-    d = (2 * a) / (b + c)
-    return 1 - d
-
 
 class SOLOv2Head(nn.Module):
     def __init__(self, num_classes, in_channels=256, stacked_convs=4, seg_feat_channels=256,
@@ -269,10 +156,9 @@ class SOLOv2Head(nn.Module):
             center_ws, center_hs = center_of_mass(gt_masks_pt)
             valid_mask_flags = gt_masks_pt.sum(dim=-1).sum(dim=-1) > 0
 
-            for gt_mask, gt_label, half_h, half_w, center_h, center_w, valid_mask_flag in zip(gt_masks, gt_labels,
-                                                                                              half_hs, half_ws,
-                                                                                              center_hs, center_ws,
-                                                                                              valid_mask_flags):
+            for gt_mask, gt_label, half_h, half_w, center_h, center_w, valid_mask_flag in zip(
+                gt_masks, gt_labels, half_hs, half_ws, center_hs, center_ws, valid_mask_flags
+            ):
                 if not valid_mask_flag:
                     continue
 
@@ -297,8 +183,11 @@ class SOLOv2Head(nn.Module):
                 h, w = gt_mask.shape[:2]
                 scale = 1. / 4
                 new_w, new_h = int(w * float(scale) + 0.5), int(h * float(scale) + 0.5)
-                gt_mask = cv2.resize(gt_mask, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
-                gt_mask = torch.from_numpy(gt_mask).to(device=device)
+                # Use torch for resizing instead of cv2
+                gt_mask_t = torch.from_numpy(gt_mask).float().unsqueeze(0).unsqueeze(0).to(device=device)
+                gt_mask_t = F.interpolate(gt_mask_t, size=(new_h, new_w), mode='bilinear', align_corners=False)
+                gt_mask_t = gt_mask_t.squeeze(0).squeeze(0)
+                gt_mask_t = (gt_mask_t > 0.5).to(torch.uint8)
 
                 for i in range(top, down + 1):
                     for j in range(left, right + 1):
@@ -306,7 +195,7 @@ class SOLOv2Head(nn.Module):
 
                         cur_ins_label = torch.zeros([mask_feat_size[0], mask_feat_size[1]], dtype=torch.uint8,
                                                     device=device)
-                        cur_ins_label[:gt_mask.shape[0], :gt_mask.shape[1]] = gt_mask
+                        cur_ins_label[:gt_mask_t.shape[0], :gt_mask_t.shape[1]] = gt_mask_t
                         ins_label.append(cur_ins_label)
                         ins_ind_label[index] = True
                         grid_order.append(index)
@@ -320,20 +209,6 @@ class SOLOv2Head(nn.Module):
             cate_label_list.append(cate_label)
             ins_ind_label_list.append(ins_ind_label)
             grid_order_list.append(grid_order)
-
-        return ins_label_list, cate_label_list, ins_ind_label_list, grid_order_list
-
-    def loss(self, cate_preds, kernel_preds, ins_pred, gt_bbox_list, gt_label_list, gt_mask_list):
-        ins_label_list, cate_label_list, ins_ind_label_list, grid_order_list = multi_apply(
-            self.target_single,
-            gt_bbox_list,
-            gt_label_list,
-            gt_mask_list,
-            mask_feat_size=ins_pred.size()[-2:])
-
-        # ins
-        ins_labels = [torch.cat([ins_labels_level_img for ins_labels_level_img in ins_labels_level], 0)
-                      for ins_labels_level in zip(*ins_label_list)]
 
         kernel_preds = [[kernel_preds_level_img.view(kernel_preds_level_img.shape[0], -1)[:, grid_orders_level_img]
                          for kernel_preds_level_img, grid_orders_level_img in

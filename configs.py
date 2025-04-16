@@ -7,7 +7,7 @@ TrainBatchSize = 2
 ############## MODEL SELECTION ##############
 # Change this to select which model to use across all scripts
 # Options: 'Solov2_res50', 'Solov2_light_res50', 'Solov2_light_res34', 'Solov2_UNet', 'Solov2_light_UNet'
-MODEL_CHOICE = 'Solov2_light_UNet'
+MODEL_CHOICE = 'Solov2_light_res34'
 
 ############## MODEL CONFIGURATION ##############
 
@@ -45,7 +45,7 @@ class Solov2_res50:
         """Setup model architecture hyperparameters"""
         self.resnet_depth = 50
         self.fpn_in_c = [256, 512, 1024, 2048]
-        self.pretrained = 'weights/backbone_resnet34.pth'
+        self.pretrained = 'weights/backbone_resnet50.pth'
         self.break_weight = ''
         
         # Head configurations
@@ -71,7 +71,7 @@ class Solov2_res50:
     def setup_validation_params(self):
         """Setup validation/testing parameters"""
         self.val_interval = 1
-        self.val_weight = 'weights/Solov2_light_res34_5.pth'
+        self.val_weight = 'weights/Solov2_light_res50_5.pth'
         self.val_bs = 1
         self.val_aug = ValAug(img_scale=[(1333, 800)])
         self.val_num = -1
@@ -118,7 +118,7 @@ class Solov2_light_res50(Solov2_res50):
     def setup_validation_params(self):
         """Override validation parameters"""
         super().setup_validation_params()
-        self.val_weight = 'weights/Solov2_light_res34_36.pth'
+        self.val_weight = 'weights/Solov2_light_res50_36.pth'
         self.val_aug = ValAug(img_scale=[(768, 448)])
 
 

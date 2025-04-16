@@ -1,4 +1,3 @@
-import os
 import json
 import numpy as np
 import torch
@@ -7,7 +6,6 @@ from model.solov2 import SOLOv2
 from configs import *
 from metrics.cocoeval import SelfEval
 from data_loader.build_loader import make_data_loader
-
 
 def val(cfg, model=None):
     if model is None:
